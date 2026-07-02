@@ -115,7 +115,8 @@ def solve_instance(instance_name: str, path: str):
     # 350k FEs runs in ~0.5s anyway, so we keep the standard budget.
     tracker = FitnessTracker(max_fe=350_000)
     config = HGAConfig()
-    hga = HybridGeneticAlgorithm(instance=instance, tracker=tracker, seed=42, config=config)
+    # Using seed=None allows the algorithm to generate a truly new random run every time
+    hga = HybridGeneticAlgorithm(instance=instance, tracker=tracker, seed=None, config=config)
     
     # 3. Solve
     t0 = time.perf_counter()
