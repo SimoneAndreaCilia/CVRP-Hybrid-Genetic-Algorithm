@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVRP HGA Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Glassmorphism Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>CVRP Solver</h1>
+                <p>Hybrid Genetic Algorithm</p>
+            </div>
+
+            <div class="control-group">
+                <label for="instance-select">Select Instance</label>
+                <select id="instance-select">
+                    <option value="" disabled selected>Loading instances...</option>
+                </select>
+            </div>
+
+            <button id="solve-btn" disabled>
+                <span>Run Optimization</span>
+                <div class="spinner hidden" id="spinner"></div>
+            </button>
+
+            <div class="stats-panel">
+                <h2>Live Statistics</h2>
+                <div class="stat-item">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value" id="stat-status">Idle</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Best Cost</span>
+                    <span class="stat-value highlight" id="stat-cost">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Gap to BKS</span>
+                    <span class="stat-value" id="stat-gap">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">FE @ Best</span>
+                    <span class="stat-value" id="stat-fes">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Execution Time</span>
+                    <span class="stat-value" id="stat-time">--</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Canvas Area -->
+        <main class="canvas-container">
+            <canvas id="cvrp-canvas"></canvas>
+            <div class="empty-state" id="empty-state">
+                Select an instance and click Run Optimization
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
