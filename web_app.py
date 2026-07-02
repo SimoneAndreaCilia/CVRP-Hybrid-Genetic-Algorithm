@@ -25,19 +25,19 @@ def read_root():
     """Redirect root to the static index.html."""
     return RedirectResponse(url="/static/index.html")
 
-# Best Known Solutions from CVRPLIB
-BKS = {
-    "A-n45-k7": 1146,
-    "A-n60-k9": 1354,
-    "A-n80-k10": 1763,
-    "B-n56-k7": 707,
-    "B-n66-k9": 1316,
-    "B-n78-k10": 1266,
-    "E-n76-k8": 735,
-    "E-n101-k14": 1071,
-    "P-n50-k10": 696,
-    "P-n101-k4": 681,
-}
+def get_bks(vrp_path: Path) -> float | None:
+    """Read the BKS from the corresponding .sol file if it exists."""
+    sol_files = list(vrp_path.parent.rglob(f"{vrp_path.stem}.sol"))
+    if not sol_files:
+        return None
+    try:
+        with open(sol_files[0], 'r') as f:
+            for line in f:
+                if line.startswith("Cost"):
+                    return float(line.strip().split()[-1])
+    except Exception:
+        pass
+    return None
 
 class InstanceInfo(BaseModel):
     customers: int
@@ -61,7 +61,7 @@ def list_instances():
     
     for vrp_file in test_sets_dir.rglob("*.vrp"):
         name = vrp_file.stem
-        bks = BKS.get(name)
+        bks = get_bks(vrp_file)
         instances.append({
             "name": name,
             "path": str(vrp_file.relative_to(Path(__file__).parent).as_posix()),
@@ -112,7 +112,7 @@ def solve_instance(instance_name: str, path: str):
         geom_route.append({"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])})
         geometric_routes.append(geom_route)
         
-    bks = BKS.get(instance_name)
+    bks = get_bks(instance_path)
     gap = ((best_solution.cost - bks) / bks * 100) if bks else None
     
     return SolveResponse(
