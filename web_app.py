@@ -39,13 +39,19 @@ BKS = {
     "P-n101-k4": 681,
 }
 
+class InstanceInfo(BaseModel):
+    customers: int
+    vehicles: int
+    capacity: int
+
 class SolveResponse(BaseModel):
     cost: float
     gap: float | None
     execution_time_ms: float
     fes: int
-    routes: list[list[dict[str, float]]]
+    routes: list[list[dict[str, float | int]]]
     depot: dict[str, float]
+    instance_info: InstanceInfo
 
 @app.get("/api/instances")
 def list_instances():
@@ -94,15 +100,16 @@ def solve_instance(instance_name: str, path: str):
         geom_route = []
         # Add depot at start
         depot_coords = instance.coords[instance.depot]
-        geom_route.append({"x": float(depot_coords[0]), "y": float(depot_coords[1])})
+        geom_route.append({"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])})
         
         # Add customers
         for customer_id in route:
             coords = instance.coords[customer_id]
-            geom_route.append({"x": float(coords[0]), "y": float(coords[1])})
+            demand = instance.demands[customer_id]
+            geom_route.append({"id": int(customer_id), "demand": int(demand), "x": float(coords[0]), "y": float(coords[1])})
             
         # Add depot at end
-        geom_route.append({"x": float(depot_coords[0]), "y": float(depot_coords[1])})
+        geom_route.append({"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])})
         geometric_routes.append(geom_route)
         
     bks = BKS.get(instance_name)
@@ -114,7 +121,12 @@ def solve_instance(instance_name: str, path: str):
         execution_time_ms=(t1 - t0) * 1000,
         fes=tracker.best_fe,
         routes=geometric_routes,
-        depot={"x": float(depot_coords[0]), "y": float(depot_coords[1])}
+        depot={"x": float(depot_coords[0]), "y": float(depot_coords[1])},
+        instance_info=InstanceInfo(
+            customers=instance.dimension - 1,
+            vehicles=int(instance.name.split("-k")[-1]),
+            capacity=instance.capacity
+        )
     )
 
 if __name__ == "__main__":
