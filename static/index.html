@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVRP HGA Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Glassmorphism Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>CVRP Solver</h1>
+                <p>Hybrid Genetic Algorithm</p>
+            </div>
+
+            <div class="control-group">
+                <label for="instance-select">Select Instance</label>
+                <select id="instance-select">
+                    <option value="" disabled selected>Loading instances...</option>
+                </select>
+            </div>
+
+            <button id="solve-btn" disabled>
+                <span>Run Optimization</span>
+                <div class="spinner hidden" id="spinner"></div>
+            </button>
+            
+            <div class="toggle-container" style="margin-top: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Compare with BKS</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-bks" disabled>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="stats-panel" id="instance-details-panel" style="display: none;">
+                <h2>Instance Details</h2>
+                <div class="stat-item">
+                    <span class="stat-label">Customers (n)</span>
+                    <span class="stat-value" id="detail-customers">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Min Vehicles (K)</span>
+                    <span class="stat-value" id="detail-vehicles">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Capacity (Q)</span>
+                    <span class="stat-value" id="detail-capacity">--</span>
+                </div>
+            </div>
+
+            <div class="stats-panel">
+                <h2>Live Statistics</h2>
+                <div class="stat-item">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value" id="stat-status">Idle</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label tooltip" title="Il miglior costo (distanza totale minima) trovato dall'algoritmo genetico">Best Cost</span>
+                    <span class="stat-value highlight" id="stat-cost">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label tooltip" title="Distanza percentuale rispetto alla Best Known Solution (BKS) della letteratura. Più è vicino a 0%, migliore è il risultato">Gap to BKS</span>
+                    <span class="stat-value" id="stat-gap">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label tooltip" title="Fitness Evaluation al quale è stato trovato il Best Cost (su un budget di 350.000)">FE @ Best</span>
+                    <span class="stat-value" id="stat-fes">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label tooltip" title="Tempo impiegato in millisecondi (ms) per eseguire l'intera ottimizzazione">Execution Time</span>
+                    <span class="stat-value" id="stat-time">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label tooltip" title="Percentuale di archi (percorsi) della rotta trovata in comune con la soluzione esatta BKS">Edge Similarity</span>
+                    <span class="stat-value" id="stat-similarity">--</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Canvas Area -->
+        <main class="main-content" id="main-content">
+            <div id="cvrp-wrapper" class="canvas-wrapper active">
+                <canvas id="cvrp-canvas"></canvas>
+                <div class="canvas-title">HGA Solution</div>
+            </div>
+            
+            <div id="bks-wrapper" class="canvas-wrapper hidden">
+                <canvas id="bks-canvas"></canvas>
+                <div class="canvas-title">Best Known Solution (BKS)</div>
+            </div>
+
+            <div class="empty-state" id="empty-state">
+                <div class="empty-icon">📍</div>
+                <h2>Ready to Optimize</h2>
+                <p>Select an instance from the sidebar to visualize the CVRP Hybrid Genetic Algorithm in action.</p>
+            </div>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
