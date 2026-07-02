@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statGap = document.getElementById('stat-gap');
     const statFes = document.getElementById('stat-fes');
     const statTime = document.getElementById('stat-time');
+    const statSimilarity = document.getElementById('stat-similarity');
 
     // Instance details elements
     const panelDetails = document.getElementById('instance-details-panel');
@@ -116,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyState.classList.add('hidden');
         statStatus.textContent = 'Running HGA...';
         statStatus.style.color = '#3b82f6';
+        statSimilarity.textContent = '--';
         
         // Reset state
         currentRoutes = null;
@@ -140,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statStatus.style.color = '#10b981';
                 statCost.textContent = data.cost.toFixed(2);
                 statGap.textContent = data.gap !== null ? `${data.gap.toFixed(2)}%` : 'N/A';
+                statSimilarity.textContent = data.edge_similarity !== null ? `${data.edge_similarity.toFixed(1)}%` : 'N/A';
                 statFes.textContent = data.fes.toLocaleString();
                 statTime.textContent = `${data.execution_time_ms.toFixed(0)} ms`;
                 

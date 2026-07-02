@@ -25,19 +25,45 @@ def read_root():
     """Redirect root to the static index.html."""
     return RedirectResponse(url="/static/index.html")
 
-def get_bks(vrp_path: Path) -> float | None:
-    """Read the BKS from the corresponding .sol file if it exists."""
+def parse_sol_file(vrp_path: Path) -> dict | None:
+    """Parse the corresponding .sol file to extract optimal cost and routes."""
     sol_files = list(vrp_path.parent.rglob(f"{vrp_path.stem}.sol"))
     if not sol_files:
         return None
+    
+    sol_data = {"cost": None, "routes": []}
     try:
         with open(sol_files[0], 'r') as f:
             for line in f:
                 if line.startswith("Cost"):
-                    return float(line.strip().split()[-1])
+                    sol_data["cost"] = float(line.strip().split()[-1])
+                elif line.startswith("Route"):
+                    parts = line.split(":")
+                    if len(parts) == 2:
+                        route_str = parts[1].strip()
+                        route_nodes = [int(n) for n in route_str.split() if n.strip().isdigit()]
+                        if route_nodes:
+                            sol_data["routes"].append(route_nodes)
+        if sol_data["cost"] is not None:
+            return sol_data
     except Exception:
         pass
     return None
+
+def get_bks(vrp_path: Path) -> float | None:
+    data = parse_sol_file(vrp_path)
+    return data["cost"] if data else None
+
+def extract_edges(routes: list[list[int]], depot: int) -> set[frozenset[int]]:
+    """Extract undirected edges from a list of CVRP routes."""
+    edges = set()
+    for route in routes:
+        if not route: continue
+        edges.add(frozenset([depot, route[0]]))
+        for i in range(len(route) - 1):
+            edges.add(frozenset([route[i], route[i+1]]))
+        edges.add(frozenset([route[-1], depot]))
+    return edges
 
 class InstanceInfo(BaseModel):
     customers: int
@@ -47,6 +73,7 @@ class InstanceInfo(BaseModel):
 class SolveResponse(BaseModel):
     cost: float
     gap: float | None
+    edge_similarity: float | None
     execution_time_ms: float
     fes: int
     routes: list[list[dict[str, float | int]]]
@@ -112,12 +139,27 @@ def solve_instance(instance_name: str, path: str):
         geom_route.append({"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])})
         geometric_routes.append(geom_route)
         
-    bks = get_bks(instance_path)
-    gap = ((best_solution.cost - bks) / bks * 100) if bks else None
+    # 5. Compare with BKS
+    sol_data = parse_sol_file(instance_path)
+    gap = None
+    edge_similarity = None
+    
+    if sol_data and sol_data["cost"]:
+        bks = sol_data["cost"]
+        gap = ((best_solution.cost - bks) / bks * 100)
+        
+        # Calculate edge similarity
+        if sol_data["routes"]:
+            hga_edges = extract_edges(best_solution.routes, instance.depot)
+            bks_edges = extract_edges(sol_data["routes"], instance.depot)
+            if bks_edges:
+                common = len(hga_edges.intersection(bks_edges))
+                edge_similarity = (common / len(bks_edges)) * 100
     
     return SolveResponse(
         cost=best_solution.cost,
         gap=gap,
+        edge_similarity=edge_similarity,
         execution_time_ms=(t1 - t0) * 1000,
         fes=tracker.best_fe,
         routes=geometric_routes,
