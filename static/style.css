@@ -152,6 +152,11 @@ button:disabled {
     font-size: 14px;
 }
 
+.stat-label.tooltip {
+    border-bottom: 1px dotted var(--text-secondary);
+    cursor: help;
+}
+
 .stat-value {
     font-weight: 600;
     font-size: 14px;
