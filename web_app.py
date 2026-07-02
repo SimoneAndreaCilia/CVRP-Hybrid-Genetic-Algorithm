@@ -77,6 +77,7 @@ class SolveResponse(BaseModel):
     execution_time_ms: float
     fes: int
     routes: list[list[dict[str, float | int]]]
+    bks_routes: list[list[dict[str, float | int]]] | None
     depot: dict[str, float]
     instance_info: InstanceInfo
 
@@ -143,18 +144,31 @@ def solve_instance(instance_name: str, path: str):
     sol_data = parse_sol_file(instance_path)
     gap = None
     edge_similarity = None
+    bks_geometric_routes = None
     
     if sol_data and sol_data["cost"]:
         bks = sol_data["cost"]
         gap = ((best_solution.cost - bks) / bks * 100)
         
-        # Calculate edge similarity
+        # Calculate edge similarity and map geometric routes
         if sol_data["routes"]:
             hga_edges = extract_edges(best_solution.routes, instance.depot)
             bks_edges = extract_edges(sol_data["routes"], instance.depot)
             if bks_edges:
                 common = len(hga_edges.intersection(bks_edges))
                 edge_similarity = (common / len(bks_edges)) * 100
+                
+            # Build geometric BKS routes for UI comparison
+            bks_geometric_routes = []
+            for route in sol_data["routes"]:
+                geom_route = []
+                geom_route.append({"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])})
+                for customer_id in route:
+                    coords = instance.coords[customer_id]
+                    demand = instance.demands[customer_id]
+                    geom_route.append({"id": int(customer_id), "demand": int(demand), "x": float(coords[0]), "y": float(coords[1])})
+                geom_route.append({"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])})
+                bks_geometric_routes.append(geom_route)
     
     return SolveResponse(
         cost=best_solution.cost,
@@ -163,6 +177,7 @@ def solve_instance(instance_name: str, path: str):
         execution_time_ms=(t1 - t0) * 1000,
         fes=tracker.best_fe,
         routes=geometric_routes,
+        bks_routes=bks_geometric_routes,
         depot={"x": float(depot_coords[0]), "y": float(depot_coords[1])},
         instance_info=InstanceInfo(
             customers=instance.dimension - 1,

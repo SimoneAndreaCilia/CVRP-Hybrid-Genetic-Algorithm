@@ -29,6 +29,14 @@
                 <span>Run Optimization</span>
                 <div class="spinner hidden" id="spinner"></div>
             </button>
+            
+            <div class="toggle-container" style="margin-top: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Compare with BKS</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-bks" disabled>
+                    <span class="slider round"></span>
+                </label>
+            </div>
 
             <div class="stats-panel" id="instance-details-panel" style="display: none;">
                 <h2>Instance Details</h2>
@@ -76,14 +84,24 @@
         </aside>
 
         <!-- Main Canvas Area -->
-        <main class="canvas-container">
-            <canvas id="cvrp-canvas"></canvas>
+        <main class="main-content" id="main-content">
+            <div id="cvrp-wrapper" class="canvas-wrapper active">
+                <canvas id="cvrp-canvas"></canvas>
+                <div class="canvas-title">HGA Solution</div>
+            </div>
+            
+            <div id="bks-wrapper" class="canvas-wrapper hidden">
+                <canvas id="bks-canvas"></canvas>
+                <div class="canvas-title">Best Known Solution (BKS)</div>
+            </div>
+
             <div class="empty-state" id="empty-state">
-                Select an instance and click Run Optimization
+                <div class="empty-icon">📍</div>
+                <h2>Ready to Optimize</h2>
+                <p>Select an instance from the sidebar to visualize the CVRP Hybrid Genetic Algorithm in action.</p>
             </div>
         </main>
     </div>
-
-    <script src="app.js"></script>
+    <script src="/static/app.js"></script>
 </body>
 </html>
