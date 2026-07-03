@@ -20,6 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const statTime = document.getElementById('stat-time');
     const statFeasibility = document.getElementById('stat-feasibility');
 
+    // Instance Info fields
+    const infoCustomers  = document.getElementById('info-customers');
+    const infoVehicles   = document.getElementById('info-vehicles');
+    const infoCapacity   = document.getElementById('info-capacity');
+    const infoUb         = document.getElementById('info-ub');
+    const infoBenchmark  = document.getElementById('info-benchmark');
+
     // Panels
     const convergencePanel = document.getElementById('convergence-panel');
     const protocolPanel = document.getElementById('protocol-panel');
@@ -213,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(data.error) throw new Error(data.error);
             
             capacity = data.instance_info.capacity;
+            updateInstanceInfo(data.instance_info);
             updateStats(data.cost, data.gap, data.fes, data.execution_time_ms, data.is_feasible);
             
             currentBksRoutes = data.bks_routes;
@@ -271,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             
             capacity = data.instance_info.capacity;
+            updateInstanceInfo(data.instance_info);
             currentBksRoutes = data.bks_routes;
             toggleBks.disabled = !currentBksRoutes;
             if(!currentBksRoutes) {
@@ -283,6 +292,14 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(handleError)
         .finally(resetUI);
+    }
+
+    function updateInstanceInfo(info) {
+        infoCustomers.textContent = info.customers;
+        infoVehicles.textContent  = info.vehicles;
+        infoCapacity.textContent  = info.capacity;
+        infoUb.textContent        = info.bks !== null ? info.bks.toFixed(0) : 'N/A';
+        infoBenchmark.textContent = `Set ${info.benchmark_set}`;
     }
 
     function updateStats(cost, gap, fes, time, feasible) {

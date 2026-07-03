@@ -87,6 +87,8 @@ class InstanceInfo(BaseModel):
     customers: int
     vehicles: int
     capacity: int
+    bks: float | None
+    benchmark_set: str
 
 class ProtocolResponse(BaseModel):
     best_cost: float
@@ -220,7 +222,9 @@ def solve_instance(instance_name: str, req: SolveRequest):
         instance_info=InstanceInfo(
             customers=instance.dimension - 1,
             vehicles=int(instance.name.split("-k")[-1]),
-            capacity=instance.capacity
+            capacity=instance.capacity,
+            bks=get_bks(instance_path),
+            benchmark_set=instance.name[0].upper()
         ),
         convergence_log=tracker.convergence_log,
         customers_served=best_solution.num_visited,
@@ -330,7 +334,9 @@ def solve_protocol(instance_name: str, req: SolveRequest):
         instance_info=InstanceInfo(
             customers=instance.dimension - 1,
             vehicles=int(instance.name.split("-k")[-1]),
-            capacity=instance.capacity
+            capacity=instance.capacity,
+            bks=bks,
+            benchmark_set=instance.name[0].upper()
         )
     )
 
