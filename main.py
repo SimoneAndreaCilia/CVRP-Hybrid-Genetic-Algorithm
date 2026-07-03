@@ -44,7 +44,7 @@ BKS: dict[str, float] = {
     "A-n80-k10": 1763,
     "B-n56-k7": 707,
     "B-n66-k9": 1316,
-    "B-n78-k10": 1266,
+    "B-n78-k10": 1221,
     "E-n76-k8": 735,
     "E-n101-k14": 1071,
     "P-n50-k10": 696,
@@ -141,9 +141,12 @@ def main() -> None:
             statistics.stdev(run_best_costs) if len(run_best_costs) > 1 else 0.0
         )
         avg_fe_at_best = statistics.mean(run_fes_at_best)
-        satisfiability = (
-            f"{best_overall_solution.num_visited}/{instance.num_customers}"
-        )
+        
+        if best_overall_solution.num_visited == instance.num_customers:
+            satisfiability = "All"
+        else:
+            satisfiability = f"{best_overall_solution.num_visited}/{instance.num_customers}"
+
         gap_best = (
             (best_cost - bks) / bks * 100 if bks < float("inf") else float("nan")
         )
@@ -187,7 +190,7 @@ def main() -> None:
         "satisfiability",
         "avg_fe_at_best",
     ]
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+    with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(all_results)

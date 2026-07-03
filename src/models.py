@@ -192,3 +192,4 @@ class HGAConfig:
     p_swap: float = 0.15
     p_inversion: float = 0.15
     p_insertion: float = 0.10
+    use_local_search: bool = True
