@@ -495,4 +495,54 @@ document.addEventListener('DOMContentLoaded', () => {
         drawRoutes(ctx, currentRoutes, false);
         if (toggleBks.checked && currentBksRoutes) drawRoutes(ctxBks, currentBksRoutes, true);
     }
+
+    // ── Vertical Resize Handle ──────────────────────────────────────────────
+    const resizeHandle = document.getElementById('resize-handle');
+    const mapContainer = document.querySelector('.map-container');
+    const analysisContainer = document.querySelector('.analysis-container');
+    const dashboardGrid = document.querySelector('.dashboard-grid');
+
+    const ANALYSIS_MIN = 120;  // px
+    const MAP_MIN      = 120;  // px
+    const HANDLE_H     = 8;    // height of the handle div
+
+    function initMapHeight() {
+        const gridH = dashboardGrid.getBoundingClientRect().height;
+        const defaultMapH = Math.round(gridH * 0.65);
+        mapContainer.style.height = defaultMapH + 'px';
+    }
+    initMapHeight();
+    window.addEventListener('resize', initMapHeight);
+
+    let resizeDragging = false;
+    let resizeStartY   = 0;
+    let resizeStartMapH = 0;
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+        resizeDragging = true;
+        resizeStartY   = e.clientY;
+        resizeStartMapH = mapContainer.getBoundingClientRect().height;
+        resizeHandle.classList.add('dragging');
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!resizeDragging) return;
+        const gridH   = dashboardGrid.getBoundingClientRect().height;
+        const maxMapH = gridH - ANALYSIS_MIN - HANDLE_H;
+        const delta   = e.clientY - resizeStartY;
+        let newMapH   = resizeStartMapH + delta;
+        newMapH = Math.max(MAP_MIN, Math.min(newMapH, maxMapH));
+        mapContainer.style.height = newMapH + 'px';
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!resizeDragging) return;
+        resizeDragging = false;
+        resizeHandle.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    });
 });

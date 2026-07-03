@@ -278,14 +278,41 @@ input:checked + .slider:before { transform: translateX(16px); background-color: 
     flex-direction: column;
     flex: 1;
     width: 100%;
+    overflow: hidden;
 }
 
 .map-container {
-    flex: 2;
+    flex: none;
     display: flex;
     flex-direction: row;
     position: relative;
     border-bottom: 1px solid var(--border);
+    /* height set by JS */
+}
+
+/* Resize Handle */
+.resize-handle {
+    flex: none;
+    height: 8px;
+    background: transparent;
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    position: relative;
+}
+.resize-handle:hover .resize-handle-bar,
+.resize-handle.dragging .resize-handle-bar {
+    background: var(--accent);
+    opacity: 0.8;
+}
+.resize-handle-bar {
+    width: 48px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.2s, opacity 0.2s;
 }
 
 .analysis-container {
