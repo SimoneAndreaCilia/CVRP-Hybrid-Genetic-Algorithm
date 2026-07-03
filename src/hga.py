@@ -85,7 +85,8 @@ class HybridGeneticAlgorithm:
 
                 for _ in range(cfg.offspring_size):
                     child = self._create_offspring(population)
-                    child = local_search(child, self.instance, self.tracker)
+                    if cfg.use_local_search:
+                        child = local_search(child, self.instance, self.tracker)
 
                     # Track global best
                     if child.cost < best_solution.cost:

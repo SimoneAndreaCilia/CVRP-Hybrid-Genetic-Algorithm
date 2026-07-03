@@ -2,6 +2,7 @@
 
 import time
 from pathlib import Path
+import statistics
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -65,10 +66,39 @@ def extract_edges(routes: list[list[int]], depot: int) -> set[frozenset[int]]:
         edges.add(frozenset([route[-1], depot]))
     return edges
 
+
+class SolveRequest(BaseModel):
+    path: str
+    seed: int | None = None
+    max_fe: int = 350000
+    pop_size: int = 50
+    mutation_rate: float = 0.4
+    use_local_search: bool = True
+
+class ProtocolRunStat(BaseModel):
+    seed: int
+    cost: float
+    gap: float | None
+    fes: int
+    execution_time_ms: float
+    is_feasible: bool
+
 class InstanceInfo(BaseModel):
     customers: int
     vehicles: int
     capacity: int
+
+class ProtocolResponse(BaseModel):
+    best_cost: float
+    mean_cost: float
+    std_cost: float
+    gap: float | None
+    avg_fes: float
+    runs: list[ProtocolRunStat]
+    routes: list[list[dict[str, float | int]]]
+    bks_routes: list[list[dict[str, float | int]]] | None
+    depot: dict[str, float]
+    instance_info: InstanceInfo
 
 class SolveResponse(BaseModel):
     cost: float
@@ -80,6 +110,9 @@ class SolveResponse(BaseModel):
     bks_routes: list[list[dict[str, float | int]]] | None
     depot: dict[str, float]
     instance_info: InstanceInfo
+    convergence_log: list[tuple[int, float]]
+    customers_served: int
+    is_feasible: bool
 
 @app.get("/api/instances")
 def list_instances():
@@ -101,9 +134,9 @@ def list_instances():
     return instances
 
 @app.post("/api/solve/{instance_name}", response_model=SolveResponse)
-def solve_instance(instance_name: str, path: str):
+def solve_instance(instance_name: str, req: SolveRequest):
     """Run HGA on the selected instance and return physical routes."""
-    instance_path = Path(__file__).parent / path
+    instance_path = Path(__file__).parent / req.path
     if not instance_path.exists():
         return {"error": "Instance not found"}
 
@@ -111,12 +144,16 @@ def solve_instance(instance_name: str, path: str):
     instance = parse_vrp(str(instance_path))
     
     # 2. Setup tracker and HGA
-    # We use a slightly smaller budget for snappy UI feedback, or the standard one.
-    # 350k FEs runs in ~0.5s anyway, so we keep the standard budget.
-    tracker = FitnessTracker(max_fe=350_000)
-    config = HGAConfig()
-    # Using seed=None allows the algorithm to generate a truly new random run every time
-    hga = HybridGeneticAlgorithm(instance=instance, tracker=tracker, seed=None, config=config)
+    tracker = FitnessTracker(max_fe=req.max_fe)
+    m_ratio = req.mutation_rate / 0.4 if req.mutation_rate > 0 else 0
+    config = HGAConfig(
+        pop_size=req.pop_size,
+        p_swap=0.15 * m_ratio,
+        p_inversion=0.15 * m_ratio,
+        p_insertion=0.10 * m_ratio,
+        use_local_search=req.use_local_search
+    )
+    hga = HybridGeneticAlgorithm(instance=instance, tracker=tracker, seed=req.seed, config=config)
     
     # 3. Solve
     t0 = time.perf_counter()
@@ -184,9 +221,120 @@ def solve_instance(instance_name: str, path: str):
             customers=instance.dimension - 1,
             vehicles=int(instance.name.split("-k")[-1]),
             capacity=instance.capacity
+        ),
+        convergence_log=tracker.convergence_log,
+        customers_served=best_solution.num_visited,
+        is_feasible=best_solution.is_feasible(instance)
+    )
+
+
+@app.post("/api/solve-protocol/{instance_name}", response_model=ProtocolResponse)
+def solve_protocol(instance_name: str, req: SolveRequest):
+    """Run 5 independent seeded runs (Protocol Mode)."""
+    instance_path = Path(__file__).parent / req.path
+    if not instance_path.exists():
+        return {"error": "Instance not found"}
+        
+    instance = parse_vrp(str(instance_path))
+    sol_data = parse_sol_file(instance_path)
+    bks = sol_data["cost"] if (sol_data and sol_data["cost"]) else None
+    
+    m_ratio = req.mutation_rate / 0.4 if req.mutation_rate > 0 else 0
+    config = HGAConfig(
+        pop_size=req.pop_size,
+        p_swap=0.15 * m_ratio,
+        p_inversion=0.15 * m_ratio,
+        p_insertion=0.10 * m_ratio,
+        use_local_search=req.use_local_search
+    )
+    
+    run_stats = []
+    costs = []
+    fes_list = []
+    
+    seeds = [1, 2, 3, 4, 5]
+    global_best_solution = None
+    global_best_cost = float('inf')
+    
+    for seed in seeds:
+        tracker = FitnessTracker(max_fe=req.max_fe)
+        hga = HybridGeneticAlgorithm(instance=instance, tracker=tracker, seed=seed, config=config)
+        
+        t0 = time.perf_counter()
+        best_solution = hga.run()
+        t1 = time.perf_counter()
+        
+        cost = best_solution.cost
+        fes = tracker.best_fe
+        feasible = best_solution.is_feasible(instance)
+        
+        if cost < global_best_cost:
+            global_best_cost = cost
+            global_best_solution = best_solution
+            
+        costs.append(cost)
+        fes_list.append(fes)
+        
+        gap = ((cost - bks) / bks * 100) if bks else None
+        
+        run_stats.append(ProtocolRunStat(
+            seed=seed,
+            cost=cost,
+            gap=gap,
+            fes=fes,
+            execution_time_ms=(t1 - t0) * 1000,
+            is_feasible=feasible
+        ))
+        
+    best_cost = min(costs)
+    mean_cost = statistics.mean(costs)
+    std_cost = statistics.stdev(costs) if len(costs) > 1 else 0.0
+    avg_fes = statistics.mean(fes_list)
+    best_gap = ((best_cost - bks) / bks * 100) if bks else None
+    
+    # Map routes to coordinates for the best run
+    depot_coords = instance.coords[instance.depot]
+    geometric_routes = []
+    for route in global_best_solution.routes:
+        geom_route = [{"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])}]
+        for customer_id in route:
+            coords = instance.coords[customer_id]
+            demand = instance.demands[customer_id]
+            geom_route.append({"id": int(customer_id), "demand": int(demand), "x": float(coords[0]), "y": float(coords[1])})
+        geom_route.append({"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])})
+        geometric_routes.append(geom_route)
+
+    # BKS routes for comparison
+    bks_geometric_routes = None
+    if sol_data and sol_data["routes"]:
+        bks_geometric_routes = []
+        for route in sol_data["routes"]:
+            geom_route = [{"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])}]
+            for customer_id in route:
+                coords = instance.coords[customer_id]
+                demand = instance.demands[customer_id]
+                geom_route.append({"id": int(customer_id), "demand": int(demand), "x": float(coords[0]), "y": float(coords[1])})
+            geom_route.append({"id": 0, "demand": 0, "x": float(depot_coords[0]), "y": float(depot_coords[1])})
+            bks_geometric_routes.append(geom_route)
+
+    return ProtocolResponse(
+        best_cost=best_cost,
+        mean_cost=mean_cost,
+        std_cost=std_cost,
+        gap=best_gap,
+        avg_fes=avg_fes,
+        runs=run_stats,
+        routes=geometric_routes,
+        bks_routes=bks_geometric_routes,
+        depot={"x": float(depot_coords[0]), "y": float(depot_coords[1])},
+        instance_info=InstanceInfo(
+            customers=instance.dimension - 1,
+            vehicles=int(instance.name.split("-k")[-1]),
+            capacity=instance.capacity
         )
     )
 
 if __name__ == "__main__":
+
     import uvicorn
     uvicorn.run("web_app:app", host="127.0.0.1", port=8000, reload=True)

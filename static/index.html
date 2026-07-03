@@ -3,55 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CVRP HGA Visualizer</title>
+    <title>CVRP HGA Research Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
     <div class="app-container">
-        <!-- Glassmorphism Sidebar -->
-        <aside class="sidebar">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h1>CVRP Solver</h1>
                 <p>Hybrid Genetic Algorithm</p>
+                <button id="mobile-close" class="mobile-only btn-icon">×</button>
             </div>
 
-            <div class="control-group">
-                <label for="instance-select">Select Instance</label>
+            <div class="control-section">
+                <h3>Instance Selection</h3>
                 <select id="instance-select">
                     <option value="" disabled selected>Loading instances...</option>
                 </select>
             </div>
 
-            <button id="solve-btn" disabled>
-                <span>Run Optimization</span>
-                <div class="spinner hidden" id="spinner"></div>
-            </button>
+            <div class="control-section">
+                <h3>Algorithm Parameters</h3>
+                <div class="param-grid">
+                    <div class="param-item">
+                        <label>FE Budget</label>
+                        <input type="number" id="param-fe" value="350000" step="10000">
+                    </div>
+                    <div class="param-item">
+                        <label>Pop Size (μ)</label>
+                        <input type="number" id="param-pop" value="50" step="10">
+                    </div>
+                    <div class="param-item">
+                        <label>Mut. Rate</label>
+                        <input type="number" id="param-mut" value="0.4" step="0.05" min="0" max="1">
+                    </div>
+                    <div class="param-item">
+                        <label>Seed</label>
+                        <input type="number" id="param-seed" placeholder="Random">
+                    </div>
+                </div>
+                <div class="toggle-container param-toggle">
+                    <span>Local Search</span>
+                    <label class="switch">
+                        <input type="checkbox" id="param-ls" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-section actions">
+                <div class="mode-tabs">
+                    <button class="mode-btn active" data-mode="single" id="mode-single">Single Run</button>
+                    <button class="mode-btn" data-mode="protocol" id="mode-protocol">Protocol (5 Runs)</button>
+                </div>
+                <button id="solve-btn" disabled>
+                    <span id="solve-btn-text">Run Optimization</span>
+                    <div class="spinner hidden" id="spinner"></div>
+                </button>
+            </div>
             
-            <div class="toggle-container" style="margin-top: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Compare with BKS</span>
+            <div class="toggle-container bks-toggle-box">
+                <span>Compare with BKS</span>
                 <label class="switch">
                     <input type="checkbox" id="toggle-bks" disabled>
                     <span class="slider round"></span>
                 </label>
-            </div>
-
-            <div class="stats-panel" id="instance-details-panel" style="display: none;">
-                <h2>Instance Details</h2>
-                <div class="stat-item">
-                    <span class="stat-label">Customers (n)</span>
-                    <span class="stat-value" id="detail-customers">--</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Min Vehicles (K)</span>
-                    <span class="stat-value" id="detail-vehicles">--</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Capacity (Q)</span>
-                    <span class="stat-value" id="detail-capacity">--</span>
-                </div>
             </div>
 
             <div class="stats-panel">
@@ -61,47 +81,87 @@
                     <span class="stat-value" id="stat-status">Idle</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label tooltip" title="Il miglior costo (distanza totale minima) trovato dall'algoritmo genetico">Best Cost</span>
+                    <span class="stat-label">Best Cost</span>
                     <span class="stat-value highlight" id="stat-cost">--</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label tooltip" title="Distanza percentuale rispetto alla Best Known Solution (BKS) della letteratura. Più è vicino a 0%, migliore è il risultato">Gap to BKS</span>
+                    <span class="stat-label">Gap to BKS</span>
                     <span class="stat-value" id="stat-gap">--</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label tooltip" title="Fitness Evaluation al quale è stato trovato il Best Cost (su un budget di 350.000)">FE @ Best</span>
+                    <span class="stat-label">FE @ Best</span>
                     <span class="stat-value" id="stat-fes">--</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label tooltip" title="Tempo impiegato in millisecondi (ms) per eseguire l'intera ottimizzazione">Execution Time</span>
+                    <span class="stat-label">Time</span>
                     <span class="stat-value" id="stat-time">--</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label tooltip" title="Percentuale di archi (percorsi) della rotta trovata in comune con la soluzione esatta BKS">Edge Similarity</span>
-                    <span class="stat-value" id="stat-similarity">--</span>
+                    <span class="stat-label">Feasibility</span>
+                    <span class="stat-value badge" id="stat-feasibility">--</span>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Canvas Area -->
+        <!-- Main Content Area -->
         <main class="main-content" id="main-content">
-            <div id="cvrp-wrapper" class="canvas-wrapper active">
-                <canvas id="cvrp-canvas"></canvas>
-                <div class="canvas-title">HGA Solution</div>
-            </div>
-            
-            <div id="bks-wrapper" class="canvas-wrapper hidden">
-                <canvas id="bks-canvas"></canvas>
-                <div class="canvas-title">Best Known Solution (BKS)</div>
+            <header class="mobile-header mobile-only">
+                <h1>CVRP HGA</h1>
+                <button id="mobile-menu-btn" class="btn-icon">☰</button>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- Map Views -->
+                <div class="map-container">
+                    <div id="cvrp-wrapper" class="canvas-wrapper active">
+                        <canvas id="cvrp-canvas"></canvas>
+                        <div class="panel-title">HGA Solution</div>
+                        <div id="route-legend" class="route-legend hidden"></div>
+                    </div>
+                    
+                    <div id="bks-wrapper" class="canvas-wrapper hidden">
+                        <canvas id="bks-canvas"></canvas>
+                        <div class="panel-title">Best Known Solution (BKS)</div>
+                    </div>
+                </div>
+
+                <!-- Analysis Views -->
+                <div class="analysis-container">
+                    <div class="panel convergence-panel hidden" id="convergence-panel">
+                        <div class="panel-title">Convergence Plot</div>
+                        <div class="chart-wrapper">
+                            <canvas id="convergence-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="panel protocol-panel hidden" id="protocol-panel">
+                        <div class="panel-title">Protocol Results (5 Runs)</div>
+                        <div class="table-wrapper">
+                            <table id="protocol-table">
+                                <thead>
+                                    <tr>
+                                        <th>Run</th>
+                                        <th>Seed</th>
+                                        <th>Cost</th>
+                                        <th>Gap</th>
+                                        <th>FE@Best</th>
+                                        <th>Feasible</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="protocol-summary" id="protocol-summary"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="empty-state" id="empty-state">
                 <div class="empty-icon">📍</div>
                 <h2>Ready to Optimize</h2>
-                <p>Select an instance from the sidebar to visualize the CVRP Hybrid Genetic Algorithm in action.</p>
+                <p>Select an instance from the sidebar to visualize the CVRP Hybrid Genetic Algorithm.</p>
             </div>
         </main>
     </div>
-    <script src="/static/app.js"></script>
+    <script src="/static/app_v7.js"></script>
 </body>
 </html>
