@@ -57,7 +57,7 @@ Runs 5 independent seeded runs on each of 10 benchmark instances (A, B, E, P set
 | A-n80-k10   | 79        | 100      | 1763  |
 | B-n56-k7    | 55        | 100      | 707   |
 | B-n66-k9    | 65        | 100      | 1316  |
-| B-n78-k10   | 77        | 100      | 1266  |
+| B-n78-k10   | 77        | 100      | 1221  |
 | E-n76-k8    | 75        | 140      | 735   |
 | E-n101-k14  | 100       | 112      | 1071  |
 | P-n50-k10   | 49        | 160      | 696   |
