@@ -203,6 +203,12 @@ select:focus, input[type="number"]:focus {
     margin-bottom: 12px;
 }
 
+.instance-info-panel {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
 .stat-item {
     display: flex;
     justify-content: space-between;
