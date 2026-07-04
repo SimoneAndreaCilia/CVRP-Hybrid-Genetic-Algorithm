@@ -359,7 +359,7 @@ def local_search(
     result = Solution(
         routes=clean_routes,
         cost=current_cost,
-        giant_tour=list(solution.giant_tour),
+        giant_tour=[customer for route in clean_routes for customer in route],
     )
 
     if budget_hit:
