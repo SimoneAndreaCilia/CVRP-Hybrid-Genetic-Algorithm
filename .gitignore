@@ -32,3 +32,7 @@ Thumbs.db
 
 # Project assignment / personal notes
 projectodo.md
+
+# Ignore all files in docs except the final report PDF
+docs/*
+!docs/relazione_finale.pdf
